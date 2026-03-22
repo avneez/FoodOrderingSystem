@@ -25,7 +25,7 @@ public class FoodOrderingApplication {
         long avneezId = restaurantService.restaurantRegistration(
                 "Avneez", "GST10905884580", "avneez@mail.com", "1234567890");
         System.out.println("Log:-");
-        System.out.println("a. Registered!!! RestaurantId:" + avneezId);
+        System.out.println("A new restaurant Registered!!! RestaurantId:" + avneezId);
 
         restaurantService.addItemsInCatalog("Donald", "Sandwich", new BigDecimal("100.00"), 4);
         restaurantService.addItemsInCatalog("Donald", "Burger", new BigDecimal("250.00"), 2);
