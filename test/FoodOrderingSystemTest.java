@@ -1,14 +1,14 @@
 import model.MenuItem;
 import model.Order;
 import model.OrderStatus;
+import service.CouponService;
 import service.OrderService;
 import service.RestaurantService;
 import service.UserService;
+import service.impl.InMemoryCouponService;
 import service.impl.InMemoryOrderService;
 import service.impl.InMemoryRestaurantService;
 import service.impl.InMemoryUserService;
-
-import java.math.BigDecimal;
 import java.util.List;
 
 public class FoodOrderingSystemTest {
@@ -16,7 +16,9 @@ public class FoodOrderingSystemTest {
     public static void main(String[] args) {
         UserService userService = new InMemoryUserService();
         RestaurantService restaurantService = new InMemoryRestaurantService();
-        OrderService orderService = new InMemoryOrderService(userService, restaurantService);
+        CouponService couponService = new InMemoryCouponService();
+        couponService.addCoupon("SAVE10", 10.0);
+        OrderService orderService = new InMemoryOrderService(userService, restaurantService, couponService);
 
         System.out.println("Running Food Ordering System tests...");
 
@@ -25,6 +27,7 @@ public class FoodOrderingSystemTest {
         testCatalogAddition(restaurantService);
         testSearchItemsSortedByPrice(restaurantService);
         long userId = testPlaceOrder(userService, restaurantService, orderService);
+        testPlaceOrderWithoutCoupon(userService, restaurantService, orderService);
         testGetOrders(userId, orderService);
         testCancelOrder(userId, restaurantService, orderService);
     }
@@ -44,20 +47,20 @@ public class FoodOrderingSystemTest {
 
     private static void testCatalogAddition(RestaurantService restaurantService) {
         restaurantService.restaurantRegistration("CatalogResto", "GST456", "cat@mail.com", "3333333333");
-        restaurantService.addItemsInCatalog("CatalogResto", "ItemA", new BigDecimal("10.00"), 5);
+        restaurantService.addItemsInCatalog("CatalogResto", "ItemA", 10.0, 5);
 
         MenuItem item = restaurantService.searchItem("CatalogResto", "ItemA");
         boolean passed = item != null
-                && item.getPrice().compareTo(new BigDecimal("10.00")) == 0
+                && item.getPrice() == 10.0
                 && item.getAvailableQuantity() == 5;
         System.out.println("Catalog addition: " + (passed ? "PASS" : "FAIL"));
     }
 
     private static void testSearchItemsSortedByPrice(RestaurantService restaurantService) {
         restaurantService.restaurantRegistration("PriceResto", "GST789", "price@mail.com", "4444444444");
-        restaurantService.addItemsInCatalog("PriceResto", "Cheap", new BigDecimal("50.00"), 10);
-        restaurantService.addItemsInCatalog("PriceResto", "Medium", new BigDecimal("100.00"), 10);
-        restaurantService.addItemsInCatalog("PriceResto", "Expensive", new BigDecimal("150.00"), 10);
+        restaurantService.addItemsInCatalog("PriceResto", "Cheap", 50.0, 10);
+        restaurantService.addItemsInCatalog("PriceResto", "Medium", 100.0, 10);
+        restaurantService.addItemsInCatalog("PriceResto", "Expensive", 150.0, 10);
 
         List<String> names = restaurantService.getItemNames("PriceResto");
         boolean passed = names.size() == 3
@@ -72,12 +75,30 @@ public class FoodOrderingSystemTest {
                                        OrderService orderService) {
         long userId = userService.userRegistration("Bob", "bob@mail.com", "5555555555");
         restaurantService.restaurantRegistration("OrderResto", "GST999", "order@mail.com", "6666666666");
-        restaurantService.addItemsInCatalog("OrderResto", "Burger", new BigDecimal("80.00"), 3);
+        restaurantService.addItemsInCatalog("OrderResto", "Burger", 80.0, 3);
 
-        long orderId = orderService.placeOrder(userId, "OrderResto", "Burger", 2);
-        boolean passed = orderId > 0;
+        long orderId = orderService.placeOrder(userId, "OrderResto", "Burger", 2, "SAVE10");
+        Order order = orderService.getOrders(userId).get(0);
+        boolean passed = orderId > 0
+                && order.getDiscountPercentage() == 10.0
+                && order.getFinalPrice() == 144.0;
         System.out.println("Place order: " + (passed ? "PASS" : "FAIL"));
         return userId;
+    }
+
+    private static void testPlaceOrderWithoutCoupon(UserService userService,
+                                                    RestaurantService restaurantService,
+                                                    OrderService orderService) {
+        long userId = userService.userRegistration("Charlie", "charlie@mail.com", "8888888888");
+        restaurantService.restaurantRegistration("NoCouponResto", "GST555", "nocoupon@mail.com", "9999999999");
+        restaurantService.addItemsInCatalog("NoCouponResto", "Roll", 60.0, 3);
+
+        orderService.placeOrder(userId, "NoCouponResto", "Roll", 2);
+        Order order = orderService.getOrders(userId).get(0);
+
+        boolean passed = order.getDiscountPercentage() == 0.0
+                && order.getFinalPrice() == 120.0;
+        System.out.println("Place order without coupon: " + (passed ? "PASS" : "FAIL"));
     }
 
     private static void testGetOrders(long userId, OrderService orderService) {
@@ -90,7 +111,7 @@ public class FoodOrderingSystemTest {
                                         RestaurantService restaurantService,
                                         OrderService orderService) {
         restaurantService.restaurantRegistration("CancelResto", "GST777", "cancel@mail.com", "7777777777");
-        restaurantService.addItemsInCatalog("CancelResto", "Pizza", new BigDecimal("120.00"), 5);
+        restaurantService.addItemsInCatalog("CancelResto", "Pizza", 120.0, 5);
 
         long orderId = orderService.placeOrder(userId, "CancelResto", "Pizza", 1);
         orderService.cancelOrder(orderId);

@@ -1,26 +1,42 @@
 ## Food Ordering System (Java)
 
-This is a simple in-memory food ordering system for one or more restaurants.
-It is designed to be easy to read, while covering all required scenarios.
+Simple in-memory food ordering system written in plain Java.
+It supports:
 
-### 1. Project structure
+- user registration
+- restaurant registration
+- adding items to a restaurant catalog
+- searching items sorted by price
+- placing orders
+- cancelling orders
+- optional coupon discounts
+
+All data is stored in memory using Java collections. There is no database and no build tool such as Maven or Gradle.
+
+---
+
+## Project structure
 
 - `src/`
-  - `FoodOrderingApplication.java` – main demo program
+  - `Main.java` - small wrapper entry point
+  - `FoodOrderingApplication.java` - main application program
   - `model/`
     - `User.java`
     - `Restaurant.java`
     - `MenuItem.java`
     - `Order.java`
     - `OrderStatus.java`
+    - `Coupon.java`
   - `service/`
     - `UserService.java` (interface)
     - `RestaurantService.java` (interface)
     - `OrderService.java` (interface)
+    - `CouponService.java` (interface)
   - `service/impl/`
     - `InMemoryUserService.java`
     - `InMemoryRestaurantService.java`
     - `InMemoryOrderService.java`
+    - `InMemoryCouponService.java`
 - `test/`
   - `FoodOrderingSystemTest.java` – manual test driver for the 7 required scenarios
 
@@ -52,9 +68,17 @@ All data is stored in memory using Java collections (`Map`, `List`). No database
 - Enum with two values: `CONFIRMED`, `CANCELLED`.
 
 #### `Order`
-- **Fields**: `id`, `userId`, `restaurantName`, `itemName`, `quantity`, `status`.
+- **Fields**: `id`, `userId`, `restaurantName`, `itemName`, `quantity`, `status`, `itemPrice`,`couponCode`,discountPercentage`,totalPrice`,`finalPrice`.
 - Starts with `status = CONFIRMED`.
 - **Method**: `cancel()` – sets status to `CANCELLED`.
+
+### `Coupon`
+
+- stores `code` and `discountPercentage`
+- uses `double` for discount percentage
+
+- This means the applied discount is saved on the order itself, even if the coupon data changes later.
+- No coupon code is handled by 'placeOrder' method overloading
 
 ---
 
@@ -80,13 +104,62 @@ These define what the system can do, without tying to a particular implementatio
 - `List<String> getItemNames(String restaurantName)`
   - Returns all item names for a restaurant, **sorted by price** (implemented in `InMemoryRestaurantService`).
 
+#### `CouponService`
+
+- `addCoupon(String code, double discountPercentage)`
+- `getCoupon(String code)`
+
+Coupons are stored in memory by coupon code.
+
 #### `OrderService`
 - `long placeOrder(long userId, String restaurantName, String itemName, int quantity)`
   - Validates user and item, reduces stock, creates an `Order` and returns its id.
 - `List<Order> getOrders(long userId)`
   - Returns all orders for a given user.
 - `void cancelOrder(long orderId)`
-  - Cancels an order, restores stock, and keeps status consistent.
+  - Cancels an order, restores stock, and keeps status consistent, changes status to `CANCELLED`
+
+Order placement behavior:
+
+- validates the user
+- validates the restaurant item
+- reduces item stock
+- calculates `totalPrice = itemPrice * quantity`
+- applies coupon discount if a valid coupon code is passed
+- uses `0.0` discount if coupon code is missing, blank, or not found
+- stores both `discountPercentage` and `finalPrice` on the order
+
+---
+
+## Coupon example
+
+Create and register a coupon:
+
+```java
+CouponService couponService = new InMemoryCouponService();
+couponService.addCoupon("SAVE10", 10.0);
+```
+
+Create the order service with coupon support:
+
+```java
+OrderService orderService =
+        new InMemoryOrderService(userService, restaurantService, couponService);
+```
+
+Place an order with a coupon:
+
+```java
+long orderId = orderService.placeOrder(userId, "Donald", "Sandwich", 2, "SAVE10");
+```
+
+Place an order without a coupon:
+
+```java
+long orderId = orderService.placeOrder(userId, "Donald", "Pizza", 1);
+```
+
+If no coupon is provided, the order is still placed and the discount percentage is stored as `0.0`.
 
 ---
 
@@ -139,31 +212,36 @@ This is a simple script-like main class that demonstrates the flow from the prob
    - `UserService userService = new InMemoryUserService();`
    - `RestaurantService restaurantService = new InMemoryRestaurantService();`
    - `OrderService orderService = new InMemoryOrderService(userService, restaurantService);`
-2. Registers a restaurant `"Donald"` and prints the restaurant id.
-3. Adds three items (`Sandwich`, `Burger`, `Pizza`) with different prices and quantities.
-4. Prints the catalog names.
-5. Registers a user `"User1"` and prints the user id.
-6. Searches for `"Sandwich"` and prints its details (name, price, quantity).
-7. Places two orders (one confirmed, one later cancelled) and prints the order ids.
-8. Lists all orders for the user with status.
-9. Cancels one order and prints a confirmation message.
+2. Registering restaurants and printing the restaurant ids.
+3. Adding catalog items with different prices and quantities.
+4. Registering user
+5. Prints the catalog names.
+6. Searching an item
+7. Placing one order with coupon `SAVE10`
+8. Placing additional orders without a coupon
+9. Printing orders with status, discount percentage, and final price
+10. Cancelling an order
 
-Now go through this file line by line to show how the services are used end-to-end.
+Main file:
+
+- `src/FoodOrderingApplication.java`
 
 ---
 
-### 6. Test driver (`test/FoodOrderingSystemTest.java`)
+### 6. Manual tests
 
-This class is not a JUnit test; it is a simple `main` program that prints `PASS/FAIL`
-for each of the 7 required scenarios:
+`test/FoodOrderingSystemTest.java` is a plain `main` method, not JUnit. It is a simple `main` program that prints `PASS/FAIL`
+
+It currently checks:
 
 1. **User registration** – `testUserRegistration`
 2. **Restaurant registration** – `testRestaurantRegistration`
 3. **Catalog addition** – `testCatalogAddition`
 4. **Search items sorted by price** – `testSearchItemsSortedByPrice`
-5. **Place order** – `testPlaceOrder`
-6. **Get orders for user** – `testGetOrders`
-7. **Cancel order** – `testCancelOrder`
+5. **Place order with coupon** – `testPlaceOrder`
+6. **Place order without coupon** – `testPlaceOrder`
+7. **Get orders for user** – `testGetOrders`
+8. **Cancel order** – `testCancelOrder`
 
 Each helper method sets up only what it needs, calls the relevant service method,
 checks the result, and prints whether that scenario passed.
@@ -176,15 +254,21 @@ From inside the `FoodOrderingSystem` folder:
 
 #### Compile everything (main + tests)
 
+From inside the project folder:
+
 ```powershell
 cd "C:\Users\dream\OneDrive\Desktop\FoodOrderingSystem"
+```
 
-javac -d out src\model\*.java src\service\*.java src\service\impl\*.java src\FoodOrderingApplication.java test\FoodOrderingSystemTest.java
+Compile:
+
+```powershell
+javac -d out src\model\*.java src\service\*.java src\service\impl\*.java src\FoodOrderingApplication.java src\Main.java test\FoodOrderingSystemTest.java
 ```
 #### Run the main demo
 
 ```powershell
-java -cp out FoodOrderingApplication
+java -cp out Main
 ```
 
 This shows the full flow with logs (register, add catalog, search, place orders, cancel).

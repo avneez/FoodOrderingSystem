@@ -4,7 +4,6 @@ import model.MenuItem;
 import model.Restaurant;
 import service.RestaurantService;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +28,7 @@ public class InMemoryRestaurantService implements RestaurantService {
     }
 
     @Override
-    public void addItemsInCatalog(String restaurantName, String itemName, BigDecimal price, int quantity) {
+    public void addItemsInCatalog(String restaurantName, String itemName, double price, int quantity) {
         Restaurant restaurant = getByName(restaurantName);
         restaurant.addOrUpdateItem(itemName, price, quantity);
     }
@@ -53,7 +52,7 @@ public class InMemoryRestaurantService implements RestaurantService {
     public List<String> getItemNames(String restaurantName) {
         Restaurant restaurant = getByName(restaurantName);
         List<MenuItem> items = new ArrayList<>(restaurant.getAllItems());
-        items.sort((a, b) -> a.getPrice().compareTo(b.getPrice()));
+        items.sort((a, b) -> Double.compare(a.getPrice(), b.getPrice()));
         List<String> names = new ArrayList<>();
         for (MenuItem item : items) {
             names.add(item.getName());

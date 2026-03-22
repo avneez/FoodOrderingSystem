@@ -6,6 +6,11 @@ public class Order {
     private final String restaurantName;
     private final String itemName;
     private final int quantity;
+    private final double itemPrice;
+    private final String couponCode;
+    private final double discountPercentage;
+    private final double totalPrice;
+    private final double finalPrice;
     private OrderStatus status;
 
     public Order(long id,
@@ -13,12 +18,22 @@ public class Order {
                  String restaurantName,
                  String itemName,
                  int quantity,
+                 double itemPrice,
+                 String couponCode,
+                 double discountPercentage,
+                 double totalPrice,
+                 double finalPrice,
                  OrderStatus status) {
         this.id = id;
         this.userId = userId;
         this.restaurantName = restaurantName;
         this.itemName = itemName;
         this.quantity = quantity;
+        this.itemPrice = itemPrice;
+        this.couponCode = couponCode;
+        this.discountPercentage = discountPercentage;
+        this.totalPrice = totalPrice;
+        this.finalPrice = finalPrice;
         this.status = status;
     }
 
@@ -40,6 +55,26 @@ public class Order {
 
     public int getQuantity() {
         return quantity;
+    }
+
+    public double getItemPrice() {
+        return itemPrice;
+    }
+
+    public String getCouponCode() {
+        return couponCode;
+    }
+
+    public double getDiscountPercentage() {
+        return discountPercentage;
+    }
+
+    public double getTotalPrice() {
+        return totalPrice;
+    }
+
+    public double getFinalPrice() {
+        return finalPrice;
     }
 
     public OrderStatus getStatus() {

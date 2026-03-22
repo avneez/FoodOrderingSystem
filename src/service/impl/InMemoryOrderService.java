@@ -1,8 +1,10 @@
 package service.impl;
 
+import model.Coupon;
 import model.MenuItem;
 import model.Order;
 import model.OrderStatus;
+import service.CouponService;
 import service.OrderService;
 import service.RestaurantService;
 import service.UserService;
@@ -20,14 +22,27 @@ public class InMemoryOrderService implements OrderService {
 
     private final UserService userService;
     private final RestaurantService restaurantService;
+    private final CouponService couponService;
 
     public InMemoryOrderService(UserService userService, RestaurantService restaurantService) {
+        this(userService, restaurantService, null);
+    }
+
+    public InMemoryOrderService(UserService userService,
+                                RestaurantService restaurantService,
+                                CouponService couponService) {
         this.userService = userService;
         this.restaurantService = restaurantService;
+        this.couponService = couponService;
     }
 
     @Override
     public long placeOrder(long userId, String restaurantName, String itemName, int quantity) {
+        return placeOrder(userId, restaurantName, itemName, quantity, null);
+    }
+
+    @Override
+    public long placeOrder(long userId, String restaurantName, String itemName, int quantity, String couponCode) {
         userService.getUser(userId);
         MenuItem item = restaurantService.searchItem(restaurantName, itemName);
         if (item == null) {
@@ -35,8 +50,27 @@ public class InMemoryOrderService implements OrderService {
         }
         item.reduceQuantity(quantity);
 
+        double itemPrice = item.getPrice();
+        double totalPrice = itemPrice * quantity;
+        Coupon coupon = couponService == null ? null : couponService.getCoupon(couponCode);
+        double discountPercentage = coupon == null ? 0.0 : coupon.getDiscountPercentage();
+        double discountAmount = totalPrice * discountPercentage / 100.0;
+        double finalPrice = totalPrice - discountAmount;
+
         long id = nextOrderId++;
-        Order order = new Order(id, userId, restaurantName, itemName, quantity, OrderStatus.CONFIRMED);
+        Order order = new Order(
+                id,
+                userId,
+                restaurantName,
+                itemName,
+                quantity,
+                itemPrice,
+                coupon == null ? null : coupon.getCode(),
+                discountPercentage,
+                totalPrice,
+                finalPrice,
+                OrderStatus.CONFIRMED
+        );
         ordersById.put(id, order);
 
         List<Order> userOrders = ordersByUserId.get(userId);

@@ -28,7 +28,7 @@ public class Restaurant {
         return name;
     }
 
-    public MenuItem addOrUpdateItem(String itemName, java.math.BigDecimal price, int quantity) {
+    public MenuItem addOrUpdateItem(String itemName, double price, int quantity) {
         MenuItem existing = catalog.get(itemName);
         if (existing == null) {
             existing = new MenuItem(itemName, price, quantity);

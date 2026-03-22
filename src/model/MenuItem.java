@@ -1,13 +1,11 @@
 package model;
 
-import java.math.BigDecimal;
-
 public class MenuItem {
     private final String name;
-    private final BigDecimal price;
+    private final double price;
     private int availableQuantity;
 
-    public MenuItem(String name, BigDecimal price, int availableQuantity) {
+    public MenuItem(String name, double price, int availableQuantity) {
         this.name = name;
         this.price = price;
         this.availableQuantity = availableQuantity;
@@ -17,7 +15,7 @@ public class MenuItem {
         return name;
     }
 
-    public BigDecimal getPrice() {
+    public double getPrice() {
         return price;
     }
 
