@@ -6,7 +6,8 @@ It is designed to be easy to read, while covering all required scenarios.
 ### 1. Project structure
 
 - `src/`
-  - `FoodOrderingApplication.java` – main demo program
+  - `Main.java` - small wrapper entry point
+  - `FoodOrderingApplication.java` - main application program
   - `model/`
     - `User.java`
     - `Restaurant.java`
